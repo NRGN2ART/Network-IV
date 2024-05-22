@@ -1,0 +1,111 @@
+#!/usr/bin/python3
+
+#
+# process paper tape hex data and interpret it as Nova obj format
+#
+# input format is bytes in two digit hex with 1 to 16 bytes per line
+# output format is SIMH deposit format
+#
+
+import sys
+import re
+import math
+
+debug = 0
+
+blocks = 0;
+errors = 0
+
+#
+# process input data into "tape_data" array of byte values
+#
+
+#match pattern for line of hexadecimal bytes 
+phex = re.compile('\s*([0-9A-Fa-f]{2}\s+){1,16}')
+
+tape_data = []
+
+for line in sys.stdin:
+  line = line.rstrip()
+  m = phex.match(line)
+  if m:
+     bytes = re.split('\s+',line)
+     for byte in bytes:
+       tape_data.append(int(byte,16))
+
+#print(tape_data)
+
+#
+# process tape_data
+#
+
+pos = 0 # current tape position
+L = len(tape_data) # length of tape in bytes
+
+if debug:
+  print ("# tape length = {0} bytes {1} words".format(L, math.ceil(L/2)))
+
+#
+# check if i words data in tape at current pos or error
+#
+
+def check_space_words(i):
+  global pos, L
+  if pos + 2*(i-1)+1 >= L:
+     print("Error at position={0} no data for {1} words".format(pos,i));
+     exit     
+
+while pos < L:
+  # skip leading 0's
+  while (pos < L) and (tape_data[pos] == 0):
+    pos = pos + 1
+    
+  if pos >= L:
+    break
+    
+  check_space_words(3)
+  count  = tape_data[pos+0] + 256*tape_data[pos+1];
+  origin = tape_data[pos+2] + 256*tape_data[pos+3];
+  csum   = tape_data[pos+4] + 256*tape_data[pos+5];
+  inv_count = (count ^ 0xffff) + 1
+  pos = pos + 6
+  csum = csum + origin
+  csum = csum + count
+
+  if debug:
+    print("# block start count={0} inv_count={1} origin={2} csum_iv={3} position {4} of {5} bytes".format(hex(count), hex(inv_count), hex(origin), hex(csum),pos, L))
+
+  if inv_count>=0 and inv_count<=20:
+    # data block
+    if debug:
+      print("# *** begin data block ***");
+    addr = origin
+    i = 0
+    while (i<inv_count) and (pos<L) and ((pos+1) < L):
+      data = tape_data[pos] + 256*tape_data[pos+1]
+      print("d {0} {1}".format(oct(addr)[2:].zfill(5),oct(data)[2:].zfill(6)))
+      pos = pos + 2
+      addr = addr + 1
+      i = i + 1
+      csum = (csum + data) & 0xFFFF
+    if debug:
+      print("# *** end data block csum={0} ***".format(csum));
+    blocks = blocks + 1
+    if csum !=0:
+      errors = errors + 1
+    
+  if count==1:
+    if debug:
+      print("# *** Starting address ***");
+    if (pos<L) and ((pos+1)<L):
+      data = tape_data[pos] + 256*tape_data[pos+1]
+      pos = pos + 2
+      print("d PC {0}".format(oct(data)[2:].zfill(6)))
+ 
+  if (inv_count>=21) and (inv_count<0xFFFF):
+    if debug:
+      print("Repeated data !!!");	      
+    break;
+
+if errors > 0:
+  print("!!! {0} block checksum errors found in {1} blocks".format(errors,blocks))
