@@ -1,0 +1,73 @@
+diff --git a/NOVA/CMakeLists.txt b/NOVA/CMakeLists.txt
+index 5d0c0f20..566bf157 100644
+--- a/NOVA/CMakeLists.txt
++++ b/NOVA/CMakeLists.txt
+@@ -51,6 +51,7 @@ add_simulator(nova
+         nova_tt.c
+         nova_tt1.c
+         nova_qty.c
++	network_iv.c
+     INCLUDES
+         ${CMAKE_CURRENT_SOURCE_DIR}
+     LABEL NOVA
+diff --git a/NOVA/nova_cpu.c b/NOVA/nova_cpu.c
+index 389024d3..25f4b550 100644
+--- a/NOVA/nova_cpu.c
++++ b/NOVA/nova_cpu.c
+@@ -296,6 +296,7 @@ uint16 M[MAXMEMSIZE] = { 0 };                           /* memory */
+ int32 AC[4] = { 0 };                                    /* accumulators */
+ int32 C = 0;                                            /* carry flag */
+ int32 saved_PC = 0;                                     /* program counter */
++int32 debug_PC = 0;                                     /* NW4 - to debug where IO came from */
+ int32 SP = 0;                                           /* stack pointer */
+ int32 FP = 0;                                           /* frame pointer */
+ int32 SR = 0;                                           /* switch register */
+@@ -1029,6 +1030,7 @@ while (reason == 0) {                                   /* loop until halted */
+             }                                           /* end CPU control */
+ 
+         else if (dev_table[device].routine) {           /* normal device */
++	    debug_PC = PC;
+             iodata = dev_table[device].routine (pulse, code, AC[dstAC]);
+             reason = iodata >> IOT_V_REASON;
+             if (code & 1)
+@@ -1166,6 +1168,9 @@ for (i = 0; (dptr = sim_devices[i]) != NULL; i++) {     /* loop thru dev */
+         dev_table[dn].routine = dibp->routine;
+         }
+     }
++
++/* Network IV */
++ dev_table[DEV_NW4].routine = nw4_io;
+ return SCPE_OK;
+ }
+ 
+diff --git a/NOVA/nova_defs.h b/NOVA/nova_defs.h
+index 26ba2399..3f3ac2f4 100644
+--- a/NOVA/nova_defs.h
++++ b/NOVA/nova_defs.h
+@@ -211,8 +211,12 @@
+ #define DEV_PIT         043                             /* programmable interval timer */
+ #define DEV_TTI1        050                             /* second console input */
+ #define DEV_TTO1        051                             /* second console output */
++#define DEV_NW4         076                             /* JLS Network IV IO */  
+ #define DEV_CPU         077                             /* CPU control */
+ 
++/* Network IV IO handler */
++int32 nw4_io(int32 pulse, int32 code, int32 AC);
++
+ /* I/O structure
+ 
+    The NOVA I/O structure is tied together by dev_table, indexed by
+diff --git a/makefile b/makefile
+index 5ddc63cb..dd7ce5d9 100644
+--- a/makefile
++++ b/makefile
+@@ -1455,7 +1455,8 @@ NOVAD = ${SIMHD}/NOVA
+ NOVA = ${NOVAD}/nova_sys.c ${NOVAD}/nova_cpu.c ${NOVAD}/nova_dkp.c \
+ 	${NOVAD}/nova_dsk.c ${NOVAD}/nova_lp.c ${NOVAD}/nova_mta.c \
+ 	${NOVAD}/nova_plt.c ${NOVAD}/nova_pt.c ${NOVAD}/nova_clk.c \
+-	${NOVAD}/nova_tt.c ${NOVAD}/nova_tt1.c ${NOVAD}/nova_qty.c
++	${NOVAD}/nova_tt.c ${NOVAD}/nova_tt1.c ${NOVAD}/nova_qty.c \
++	${NOVAD}/network_iv.c
+ NOVA_OPT = -I ${NOVAD}
+ 
+ 
