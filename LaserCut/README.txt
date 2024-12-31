@@ -12,5 +12,10 @@ Box with volume ~ 0.08 cubic ft:
 
   SpeakerPage.svg
 
+Display unit:
+
+  Matrix1.svg
+  Matrix2.svg 
+
 These files are created with respect to these instructions: https://www.digitalcraftpdx.com/file-prep/
 
