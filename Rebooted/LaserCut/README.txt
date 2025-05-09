@@ -19,3 +19,11 @@ Display unit:
 
 These files are created with respect to these instructions: https://www.digitalcraftpdx.com/file-prep/
 
+Notes:
+
+  The console was generaed using this online generator and then adding elements (holes for buttons, speakers, etc.): 
+       https://boxes.hackerspace-bamberg.de/Console?language=en
+
+  The display "matrix" wos was generated using this online generator with some manual edits to fix bugs in the generator in handling 16x64 leds: 
+       https://boxes.hackerspace-bamberg.de/Matrix?language=en
+  
